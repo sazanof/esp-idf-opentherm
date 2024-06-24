@@ -4,7 +4,7 @@
 
 # ESP-IDF Opentherm
 
-This component provide an implementation of Opentherm protocol with ESP-IDF. Tested on ESP-IDF > 5 version.
+This component provides an implementation of Opentherm protocol with ESP-IDF. Tested on ESP-IDF > 5 version.
 
 ## How to Use Example
 
@@ -12,8 +12,9 @@ Before project configuration and build, be sure to set the correct chip target u
 
 ### Hardware Required
 
-* A development board with normal LED or addressable LED on-board (e.g., ESP32-S3-DevKitC, ESP32-C6-DevKitC etc.)
+* A development board (e.g., ESP32-S3-DevKitC, ESP32-C6-DevKitC etc.)
 * A USB cable for Power supply and programming
+* An opentherm adapter
 
 See [Development Boards](https://www.espressif.com/en/products/devkits) for more information about it.
 
