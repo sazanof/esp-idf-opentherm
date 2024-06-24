@@ -1,0 +1,13 @@
+menu "OpenTherm Configuration"
+    config OT_IN_PIN
+        int "Opentherm in pin"
+        default 21
+        help
+            Opentherm in pin
+
+    config OT_OUT_PIN
+        int "Opentherm out pin"
+        default 22
+        help
+            Opentherm outpin
+endmenu
