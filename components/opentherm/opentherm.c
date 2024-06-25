@@ -507,7 +507,7 @@ bool esp_ot_send_request_async(unsigned long request)
     esp_ot_send_bit(1); // start bit
     for (int i = 31; i >= 0; i--)
     {
-        esp_ot_send_bit(bitRead(request, i));
+        esp_ot_send_bit(ESP_OT_BIT_READ(request, i));
     }
     esp_ot_send_bit(1); // stop bit
     esp_ot_set_idle_state();
@@ -818,7 +818,7 @@ bool esp_ot_send_response(unsigned long request)
     esp_ot_send_bit(1); // start bit
     for (int i = 31; i >= 0; i--)
     {
-        esp_ot_send_bit(bitRead(request, i));
+        esp_ot_send_bit(ESP_OT_BIT_READ(request, i));
     }
     esp_ot_send_bit(1); // stop bit
     esp_ot_set_idle_state();

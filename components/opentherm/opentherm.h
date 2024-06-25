@@ -15,9 +15,9 @@ static portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 #define PORT_ENTER_CRITICAL portENTER_CRITICAL(&mux)
 #define PORT_EXIT_CRITICAL portEXIT_CRITICAL(&mux)
 
-#ifndef bit
-#define bit(b) (1UL << (b))
-#define bitRead(value, bit) ((value >> bit) & 0x01)
+#ifndef ESP_OT_BIT
+#define ESP_OT_BIT(b) (1UL << (b))
+#define ESP_OT_BIT_READ(value, ESP_OT_BIT) ((value >> ESP_OT_BIT) & 0x01)
 #endif
 
 // ENUMS
