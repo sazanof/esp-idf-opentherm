@@ -1,9 +1,9 @@
 /**
-* @package     Opentherm library for ESP-IDF framework
-* @author:     Mikhail Sazanof
-* @copyright   Copyright (C) 2024 - Sazanof.ru
-* @licence     MIT
-*/
+ * @package     Opentherm library for ESP-IDF framework
+ * @author:     Mikhail Sazanof
+ * @copyright   Copyright (C) 2024 - Sazanof.ru
+ * @licence     MIT
+ */
 
 #include <stdio.h>
 #include "esp_log.h"
@@ -12,8 +12,11 @@
 
 static const char *TAG = "ot-example";
 
-gpio_num_t pin_in = CONFIG_OT_IN_PIN;
-gpio_num_t pin_out = CONFIG_OT_OUT_PIN;
+#define OT_IN_PIN 4;
+#define OT_OUT_PIN 5;
+
+gpio_num_t pin_in = OT_IN_PIN;
+gpio_num_t pin_out = OT_OUT_PIN;
 
 typedef uint8_t byte;
 
@@ -34,7 +37,7 @@ volatile byte esp_ot_response_bit_index;
 /**
  * Initialize opentherm: gpio, install isr, basic data
  *
- * @return  void 
+ * @return  void
  */
 esp_err_t esp_ot_init(
     gpio_num_t _pin_in,
@@ -89,7 +92,6 @@ esp_err_t esp_ot_init(
     return ESP_OK;
 }
 
-
 /**
  * Send bit helper
  *
@@ -124,9 +126,9 @@ unsigned long esp_ot_build_set_boiler_status_request(bool enableCentralHeating, 
 /**
  * Request builder for setting up boiler temperature
  *
- * @param   float  temperature 
+ * @param   float  temperature
  *
- * @return  long  
+ * @return  long
  */
 unsigned long esp_ot_build_set_boiler_temperature_request(float temperature)
 {
@@ -137,7 +139,7 @@ unsigned long esp_ot_build_set_boiler_temperature_request(float temperature)
 /**
  * Request builder to get boiler temperature
  *
- * @return  long 
+ * @return  long
  */
 unsigned long esp_ot_build_get_boiler_temperature_request()
 {
@@ -167,7 +169,7 @@ int IRAM_ATTR esp_ot_read_state()
 /**
  * Set active state helper
  *
- * @return  void 
+ * @return  void
  */
 void esp_ot_set_active_state()
 {
@@ -177,7 +179,7 @@ void esp_ot_set_active_state()
 /**
  * Set idle state helper
  *
- * @return  void 
+ * @return  void
  */
 void esp_ot_set_idle_state()
 {
@@ -187,7 +189,7 @@ void esp_ot_set_idle_state()
 /**
  * Activate boiler helper
  *
- * @return  void   
+ * @return  void
  */
 void esp_ot_activate_boiler()
 {
@@ -213,7 +215,7 @@ void esp_ot_process_response()
  *
  * @param   long message
  *
- * @return  open_therm_message_type_t 
+ * @return  open_therm_message_type_t
  */
 open_therm_message_type_t esp_ot_get_message_type(unsigned long message)
 {
@@ -236,9 +238,9 @@ open_therm_message_id_t esp_ot_get_data_id(unsigned long frame)
 /**
  * Build a request
  *
- * @param   int   data 
+ * @param   int   data
  *
- * @return  long 
+ * @return  long
  */
 unsigned long esp_ot_build_request(open_therm_message_type_t type, open_therm_message_id_t id, unsigned int data)
 {
@@ -258,9 +260,9 @@ unsigned long esp_ot_build_request(open_therm_message_type_t type, open_therm_me
 /**
  * Build response
  *
- * @param   int   data 
+ * @param   int   data
  *
- * @return  long 
+ * @return  long
  */
 unsigned long esp_ot_build_response(open_therm_message_type_t type, open_therm_message_id_t id, unsigned int data)
 {
@@ -275,9 +277,9 @@ unsigned long esp_ot_build_response(open_therm_message_type_t type, open_therm_m
 /**
  * Check if request is valid
  *
- * @param   long  request 
+ * @param   long  request
  *
- * @return  bool 
+ * @return  bool
  */
 bool esp_ot_is_valid_request(unsigned long request)
 {
@@ -292,7 +294,7 @@ bool esp_ot_is_valid_request(unsigned long request)
  *
  * @param   long  response
  *
- * @return  bool 
+ * @return  bool
  */
 bool esp_ot_is_valid_response(unsigned long response)
 {
@@ -305,9 +307,9 @@ bool esp_ot_is_valid_response(unsigned long response)
 /**
  * Parity helper
  *
- * @param   long  frame 
+ * @param   long  frame
  *
- * @return  bool 
+ * @return  bool
  */
 bool parity(unsigned long frame) // odd parity
 {
@@ -324,7 +326,7 @@ bool parity(unsigned long frame) // odd parity
 /**
  * Reset helper
  *
- * @return  long  
+ * @return  long
  */
 unsigned long ot_reset()
 {
@@ -335,7 +337,7 @@ unsigned long ot_reset()
 /**
  * Get slave product version
  *
- * @return  long 
+ * @return  long
  */
 unsigned long esp_ot_get_slave_product_version()
 {
@@ -346,12 +348,23 @@ unsigned long esp_ot_get_slave_product_version()
 /**
  * Get slave configuration
  *
- * @return  long 
+ * @return  long
  */
-unsigned long ot_get_slave_configuration()
+esp_ot_slave_config_t esp_ot_get_slave_configuration()
 {
     unsigned long response = esp_ot_send_request(esp_ot_build_request(OT_READ_DATA, MSG_ID_S_CONFIG_S_MEMEBER_ID_CODE, 0));
-    return esp_ot_is_valid_response(response) ? response : 0;
+    uint16_t result = esp_ot_is_valid_response(response) ? esp_ot_get_uint(response) : 0;
+    uint8_t member_id_code = (uint8_t)(result & 0x00FF);
+    uint8_t flags = (uint8_t)((result & 0xFF00) >> 8);
+    esp_ot_slave_config_t slave_config = {
+        .dhw_present = flags & (1 << 0),
+        .control_type = flags & (1 << 1),
+        .cooling_supported = flags & (1 << 2),
+        .dhw_config = flags & (1 << 3),
+        .pump_control_allowed = flags & (1 << 4),
+        .ch2_present = flags & (1 << 5)};
+
+    return slave_config;
 }
 
 /**
@@ -437,7 +450,7 @@ void IRAM_ATTR esp_ot_handle_interrupt()
 /**
  * Process function
  *
- * @return  void   
+ * @return  void
  */
 void process()
 {
@@ -483,9 +496,9 @@ void process()
 /**
  * Send request async
  *
- * @param   long  request 
+ * @param   long  request
  *
- * @return  bool   
+ * @return  bool
  */
 bool esp_ot_send_request_async(unsigned long request)
 {
@@ -525,7 +538,7 @@ bool esp_ot_send_request_async(unsigned long request)
  *
  * @param   long  request
  *
- * @return  long 
+ * @return  long
  */
 unsigned long esp_ot_send_request(unsigned long request)
 {
@@ -547,7 +560,7 @@ unsigned long esp_ot_send_request(unsigned long request)
  *
  * @param   long  response
  *
- * @return  bool  
+ * @return  bool
  */
 bool esp_ot_is_fault(unsigned long response)
 {
@@ -557,9 +570,9 @@ bool esp_ot_is_fault(unsigned long response)
 /**
  * Check if central heating is active
  *
- * @param   long  response 
+ * @param   long  response
  *
- * @return  bool        
+ * @return  bool
  */
 bool esp_ot_is_central_heating_active(unsigned long response)
 {
@@ -569,9 +582,9 @@ bool esp_ot_is_central_heating_active(unsigned long response)
 /**
  * Check if hot water is active
  *
- * @param   long  response 
+ * @param   long  response
  *
- * @return  bool 
+ * @return  bool
  */
 bool esp_ot_is_hot_water_active(unsigned long response)
 {
@@ -581,9 +594,9 @@ bool esp_ot_is_hot_water_active(unsigned long response)
 /**
  * Check if flame is on
  *
- * @param   long  response 
+ * @param   long  response
  *
- * @return  bool   
+ * @return  bool
  */
 bool esp_ot_is_flame_on(unsigned long response)
 {
@@ -617,9 +630,9 @@ bool esp_ot_is_diagnostic(unsigned long response)
 /**
  * Get uint value
  *
- * @param   long      response 
+ * @param   long      response
  *
- * @return  uint16_t         
+ * @return  uint16_t
  */
 uint16_t esp_ot_get_uint(const unsigned long response)
 {
@@ -630,9 +643,9 @@ uint16_t esp_ot_get_uint(const unsigned long response)
 /**
  * Get float value
  *
- * @param   long   response 
+ * @param   long   response
  *
- * @return  float       
+ * @return  float
  */
 float esp_ot_get_float(const unsigned long response)
 {
@@ -644,9 +657,9 @@ float esp_ot_get_float(const unsigned long response)
 /**
  * Get data from temperature
  *
- * @param   float  temperature 
+ * @param   float  temperature
  *
- * @return  int        
+ * @return  int
  */
 unsigned int esp_ot_temperature_to_data(float temperature)
 {
@@ -672,7 +685,7 @@ unsigned int esp_ot_temperature_to_data(float temperature)
  * @param bool  enableCooling
  * @param bool  enableOutsideTemperatureCompensation
  * @param bool  enableCentralHeating2
- * 
+ *
  * @return long boiler status
  */
 unsigned long esp_ot_set_boiler_status(
@@ -688,13 +701,27 @@ unsigned long esp_ot_set_boiler_status(
 /**
  * Set boler temperature
  *
- * @param   float temperature target temperature setpoint
+ * @param   float temperature target temperature
  *
  * @return  bool
  */
 bool esp_ot_set_boiler_temperature(float temperature)
 {
     unsigned long response = esp_ot_send_request(esp_ot_build_set_boiler_temperature_request(temperature));
+    return esp_ot_is_valid_response(response);
+}
+
+/**
+ * Set hot water setpoint
+ *
+ * @param   float  temperature
+ *
+ * @return  bool
+ */
+bool esp_ot_set_dhw_setpoint(float temperature)
+{
+    unsigned int data = esp_ot_temperature_to_data(temperature);
+    unsigned long response = esp_ot_send_request(esp_ot_build_request(OT_WRITE_DATA, MSG_ID_TDHW_SET, data));
     return esp_ot_is_valid_response(response);
 }
 
@@ -710,9 +737,130 @@ float esp_ot_get_boiler_temperature()
 }
 
 /**
+ * Get DHW setpoint
+ *
+ * @return  float
+ */
+float esp_ot_get_dhw_setpoint()
+{
+    unsigned long response = esp_ot_send_request(esp_ot_build_request(OT_READ_DATA, MSG_ID_TDHW_SET, 0));
+    return esp_ot_is_valid_response(response) ? esp_ot_get_float(response) : 0;
+}
+
+/**
+ * Get CH setpoint temperature
+ *
+ * @return  float
+ */
+float esp_ot_get_ch_max_setpoint()
+{
+    unsigned long response = esp_ot_send_request(esp_ot_build_request(OT_READ_DATA, MSG_ID_MAX_TSET, 0));
+    return esp_ot_is_valid_response(response) ? esp_ot_get_float(response) : 0;
+}
+
+esp_ot_min_max_t esp_ot_get_ch_upper_lower_bounds()
+{
+    unsigned long response = esp_ot_send_request(esp_ot_build_request(OT_READ_DATA, MSG_ID_MAX_TSET_UB_MAX_TSET_LB, 0));
+    uint16_t result = esp_ot_is_valid_response(response) ? esp_ot_get_uint(response) : 0;
+
+    uint8_t min = (uint8_t)(result & 0x00FF);
+    uint8_t max = (uint8_t)((result & 0xFF00) >> 8);
+    esp_ot_min_max_t min_max = {
+        .min = min,
+        .max = max};
+    return min_max;
+}
+
+esp_ot_min_max_t esp_ot_get_dhw_upper_lower_bounds()
+{
+    unsigned long response = esp_ot_send_request(esp_ot_build_request(OT_READ_DATA, MSG_ID_TDHW_SET_UBT_DHW_SET_LB, 0));
+    uint16_t result = esp_ot_is_valid_response(response) ? esp_ot_get_uint(response) : 0;
+    uint8_t min = (uint8_t)(result & 0x00FF);
+    uint8_t max = (uint8_t)((result & 0xFF00) >> 8);
+    esp_ot_min_max_t min_max = {
+        .min = min,
+        .max = max};
+    return min_max;
+}
+
+/**
+ * OTC heat curve ratio upper & lower bounds for adjustment
+ * @return  uint16_t
+ */
+esp_ot_min_max_t esp_ot_get_heat_curve_ul_bounds()
+{
+    unsigned long response = esp_ot_send_request(esp_ot_build_request(OT_READ_DATA, MSG_ID_OTC_HEAT_CURVE_UL_BOUNDS, 0));
+    uint16_t result = esp_ot_is_valid_response(response) ? esp_ot_get_uint(response) : 0;
+    uint8_t min = (uint8_t)(result & 0x00FF);
+    uint8_t max = (uint8_t)((result & 0xFF00) >> 8);
+    esp_ot_min_max_t min_max = {
+        .min = min,
+        .max = max};
+    return min_max;
+}
+
+/**
+ * Maximum boiler capacity(kW) / Minimum boiler modulation level(%)
+ * @return  uint16_t
+ */
+esp_ot_cap_mod_t esp_ot_get_max_capacity_min_modulation()
+{
+    unsigned long response = esp_ot_send_request(esp_ot_build_request(OT_READ_DATA, MSG_ID_MAX_CAPACITY_MIN_MOD_LEVEL, 0));
+    uint16_t result = esp_ot_is_valid_response(response) ? esp_ot_get_uint(response) : 0;
+    uint8_t mod = (uint8_t)(result & 0x00FF);
+    uint8_t kw = (uint8_t)((result & 0xFF00) >> 8);
+    esp_ot_cap_mod_t cap_mod = {
+        .kw = kw,
+        .min_modulation = mod};
+    return cap_mod;
+}
+
+/**
+ *
+ * firsp part uint8_t
+ * bit: description [ clear/0, set/1]
+ * 0: Service request [service not req’d, service required]
+ * 1: Lockout-reset [ remote reset disabled, rr enabled]
+ * 2: Low water press [no WP fault, water pressure fault]
+ * 3: Gas/flame fault [ no G/F fault, gas/flame fault ]
+ * 4: Air press fault [ no AP fault, air pressure fault ]
+ * 5: Water over-temp[ no OvT fault, over-temperat. Fault]
+ * 6: reserved
+ * 7: reserved
+ * 00001010
+ * second part uint8_t - OEM diagnostic code
+ */
+esp_ot_asf_flags_t esp_ot_get_asf_flags()
+{
+    uint16_t faults = esp_ot_get_fault_code();
+    uint8_t error_code = (uint8_t)faults;
+    uint8_t fault_codes = (uint8_t)((faults & 0xFF00) >> 8);
+
+    // NUM & (1<<N)
+    esp_ot_asf_flags_t flags = {
+        .diag_code = esp_ot_get_oem_diagnostic_code(),
+        .fault_code = error_code,
+        .is_service_request = fault_codes & (1 << 0), // NUM & (1<<N)
+        .can_reset = fault_codes & (1 << 1),
+        .is_low_water_press = fault_codes & (1 << 2),
+        .is_gas_flame_fault = fault_codes & (1 << 3),
+        .is_air_press_fault = fault_codes & (1 << 4),
+        .is_water_over_temp = fault_codes & (1 << 5),
+    };
+
+    return flags;
+}
+
+uint16_t esp_ot_get_oem_diagnostic_code()
+{
+    unsigned long response = esp_ot_send_request(esp_ot_build_request(OT_READ_DATA, MSG_ID_OEM_DDIAGNOSTIC_CODE, 0));
+    return esp_ot_is_valid_response(response) ? esp_ot_get_uint(response) : 0;
+}
+
+/**
  * Get return temperature data
  *
- * @return  float 
+ * @return  float
  */
 float esp_ot_get_return_temperature()
 {
@@ -720,25 +868,21 @@ float esp_ot_get_return_temperature()
     return esp_ot_is_valid_response(response) ? esp_ot_get_float(response) : 0;
 }
 
-
 /**
- * Set hot water setpoint
+ * Get outside temperature
  *
- * @param   float  temperature
- *
- * @return  bool  
+ * @return  float
  */
-bool esp_ot_set_dhw_setpoint(float temperature)
+float esp_ot_get_outside_temperature()
 {
-    unsigned int data = esp_ot_temperature_to_data(temperature);
-    unsigned long response = esp_ot_send_request(esp_ot_build_request(OT_WRITE_DATA, MSG_ID_TDHW_SET, data));
-    return esp_ot_is_valid_response(response);
+    unsigned long response = esp_ot_send_request(esp_ot_build_request(OT_READ_DATA, MSG_ID_TOUTSIDE, 0));
+    return esp_ot_is_valid_response(response) ? esp_ot_get_float(response) : 0;
 }
 
 /**
  * Get hot water temperature
  *
- * @return  float 
+ * @return  float
  */
 float esp_ot_get_dhw_temperature()
 {
@@ -747,9 +891,48 @@ float esp_ot_get_dhw_temperature()
 }
 
 /**
+ * Get CH2 flow temperature
+ *
+ * @return  float
+ */
+float esp_ot_get_ch2_flow()
+{
+    unsigned long response = esp_ot_send_request(esp_ot_build_request(OT_READ_DATA, MSG_ID_TR_SET_CH2, 0));
+    return esp_ot_is_valid_response(response) ? esp_ot_get_float(response) : 0;
+}
+
+/**
+ * Get hot water temperature
+ *
+ * @return  float
+ */
+float esp_ot_get_dhw2_temperature()
+{
+    unsigned long response = esp_ot_send_request(esp_ot_build_request(OT_READ_DATA, MSG_ID_TDHW2, 0));
+    return esp_ot_is_valid_response(response) ? esp_ot_get_float(response) : 0;
+}
+
+/**
+ * Get hot exhaust temperature
+ *
+ * @return  float
+ */
+float esp_ot_get_exhaust_temperature()
+{
+    unsigned long response = esp_ot_send_request(esp_ot_build_request(OT_READ_DATA, MSG_ID_TEXHAUST, 0));
+    return esp_ot_is_valid_response(response) ? esp_ot_get_float(response) : 0;
+}
+
+float esp_ot_get_flow_rate()
+{
+    unsigned long response = esp_ot_send_request(esp_ot_build_request(OT_READ_DATA, MSG_ID_DHW_FLOW_RATE, 0));
+    return esp_ot_is_valid_response(response) ? esp_ot_get_float(response) : 0;
+}
+
+/**
  * Get modulation
  *
- * @return  float  
+ * @return  float
  */
 float esp_ot_get_modulation()
 {
@@ -758,9 +941,22 @@ float esp_ot_get_modulation()
 }
 
 /**
+ * Maximum relative modulation level setting(%)
+ *
+ * @return  float
+ */
+bool esp_ot_set_modulation_level(int percent)
+{
+    unsigned int data = percent;
+    unsigned long response = esp_ot_send_request(
+        esp_ot_build_request(OT_WRITE_DATA, MSG_ID_MAX_REL_MOD_LEVEL_SETTING, data));
+    return esp_ot_is_valid_response(response);
+}
+
+/**
  * Get pressure
  *
- * @return  float 
+ * @return  float
  */
 float esp_ot_get_pressure()
 {
@@ -778,6 +974,11 @@ unsigned char esp_ot_get_fault()
     return ((esp_ot_send_request(esp_ot_build_request(OT_READ_DATA, MSG_ID_ASF_FLAGS, 0)) >> 8) & 0xff);
 }
 
+uint16_t esp_ot_get_fault_code()
+{
+    return ((esp_ot_send_request(esp_ot_build_request(OT_READ_DATA, MSG_ID_ASF_FLAGS, 0))));
+}
+
 /**
  * Get last response status
  *
@@ -788,13 +989,12 @@ open_therm_response_status_t esp_ot_get_last_response_status()
     return esp_ot_response_status;
 }
 
-
 /**
  * Send response
  *
- * @param   long  request  
+ * @param   long  request
  *
- * @return  bool         
+ * @return  bool
  */
 bool esp_ot_send_response(unsigned long request)
 {
@@ -828,11 +1028,10 @@ bool esp_ot_send_response(unsigned long request)
     return true;
 }
 
-
 /**
  * Get last response
  *
- * @return  long  
+ * @return  long
  */
 unsigned long esp_ot_get_last_response()
 {

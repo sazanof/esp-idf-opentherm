@@ -1,15 +1,17 @@
 /**
-* @package     Opentherm library for ESP-IDF framework
-* @author:     Mikhail Sazanof
-* @copyright   Copyright (C) 2024 - Sazanof.ru
-* @licence     MIT
-*/
+ * @package     Opentherm library for ESP-IDF framework
+ * @author:     Mikhail Sazanof
+ * @copyright   Copyright (C) 2024 - Sazanof.ru
+ * @licence     MIT
+ */
 
 #include <stdio.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "driver/gpio.h"
 #include "esp_timer.h"
+
+#include "opentherm_struct.h"
 
 static portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 #define PORT_ENTER_CRITICAL portENTER_CRITICAL(&mux)
@@ -45,107 +47,127 @@ typedef enum OpenThermMessageType // old name OpenThermRequestType; // for backw
 
 typedef enum OpenThermMessageID
 {
-    MSG_ID_STATUS = 0,                                                    // flag8/flag8  Master and Slave Status flags.
-    MSG_ID_T_SET = 1,                                                     // f8.8         Control Setpoint i.e.CH water temperature Setpoint(°C)
-    MSG_ID_M_CONFIG_M_MEMEBER_ID_CODE = 2,                                // flag8/u8     Master Configuration Flags / Master MemberID Code
-    MSG_ID_S_CONFIG_S_MEMEBER_ID_CODE = 3,                                // flag8/u8     Slave Configuration Flags / Slave MemberID Code
-    MSG_ID_REMOTE_REQUEST = 4,                                            // u8/u8        Remote Request
-    MSG_ID_ASF_FLAGS = 5,                                                 // flag8/u8     Application - specific fault flags and OEM fault code
-    MSG_ID_RBP_FLAGS = 6,                                                 // flag8/flag8  Remote boiler parameter transfer - enable & read / write flags
-    MSG_ID_COOLING_CONTROL = 7,                                           // f8.8         Cooling control signal(%)
-    MSG_ID_T_SET_CH2 = 8,                                                 // f8.8         Control Setpoint for 2e CH circuit(°C)
-    MSG_ID_TR_OVERRIDE = 9,                                               // f8.8         Remote override room Setpoint
-    MSG_ID_TSP = 10,                                                      // u8/u8        Number of Transparent - Slave - Parameters supported by slave
-    MSG_ID_TSP_INDEX_TSP_VALUE = 11,                                      // u8/u8        Index number / Value of referred - to transparent slave parameter.
-    MSG_ID_FHB_SIZE = 12,                                                 // u8/u8        Size of Fault - History - Buffer supported by slave
-    MSG_ID_FHB_INDEX_FHB_VALUE = 13,                                      // u8/u8        Index number / Value of referred - to fault - history buffer entry.
-    MSG_ID_MAX_REL_MOD_LEVEL_SETTINGG = 14,                               // f8.8         Maximum relative modulation level setting(%)
-    MSG_ID_MAX_CAPACITY_MIN_MOD_LEVEL = 15,                               // u8/u8        Maximum boiler capacity(kW) / Minimum boiler modulation level(%)
-    MSG_ID_TR_SET = 16,                                                   // f8.8         Room Setpoint(°C)
-    MSG_ID_REL_MOD_LEVEL = 17,                                            // f8.8         Relative Modulation Level(%)
-    MSG_ID_CH_PRESSURE = 18,                                              // f8.8         Water pressure in CH circuit(bar)
-    MSG_ID_DHW_FLOW_RATE = 19,                                            // f8.8         Water flow rate in DHW circuit. (litres / minute)
-    MSG_ID_DAY_TIME = 20,                                                 // special/u8   Day of Week and Time of Day
-    MSG_ID_DATE = 21,                                                     // u8/u8        Calendar date
-    MSG_ID_YEAR = 22,                                                     // u16          Calendar year
-    MSG_ID_TR_SET_CH2 = 23,                                               // f8.8         Room Setpoint for 2nd CH circuit(°C)
-    MSG_ID_TR = 24,                                                       // f8.8         Room temperature(°C)
-    MSG_ID_TBOILER = 25,                                                  // f8.8         Boiler flow water temperature(°C)
-    MSG_ID_TDHW = 26,                                                     // f8.8         DHW temperature(°C)
-    MSG_ID_TOUTSIDE = 27,                                                 // f8.8         Outside temperature(°C)
-    MSG_ID_TRET = 28,                                                     // f8.8         Return water temperature(°C)
-    MSG_ID_TSTORAGE = 29,                                                 // f8.8         Solar storage temperature(°C)
-    MSG_ID_TCOLLECTOR = 30,                                               // f8.8         Solar collector temperature(°C)
-    MSG_ID_T_FLOW_CH2 = 31,                                               // f8.8         Flow water temperature CH2 circuit(°C)
-    MSG_ID_TDHW2 = 32,                                                    // f8.8         Domestic hot water temperature 2 (°C)
-    MSG_ID_TEXHAUST = 33,                                                 // s16          Boiler exhaust temperature(°C)
-    MSG_ID_TBOILER_HEAT_EEXCHANGER = 34,                                  // f8.8         Boiler heat exchanger temperature(°C)
-    MSG_ID_BOILER_FAN_SSPEED_SETPOINT_AND_ACTIAL = 35,                    // u8/u8        Boiler fan speed Setpoint and actual value
-    MSG_ID_FLAME_CURRENT = 36,                                            // f8.8         Electrical current through burner flame[μA]
-    MSG_ID_TR_CH2 = 37,                                                   // f8.8         Room temperature for 2nd CH circuit(°C)
-    MSG_ID_RELATIVE_HUMIDITY = 38,                                        // f8.8         Actual relative humidity as a percentage
-    MSG_ID_TR_OOVERRIDE2 = 39,                                            // f8.8         Remote Override Room Setpoint 2
-    MSG_ID_TDHW_SET_UBT_DHW_SET_LB = 48,                                  // s8/s8        DHW Setpoint upper & lower bounds for adjustment(°C)
-    MSG_ID_MAX_TSET_UB_MAX_TSET_LB = 49,                                  // s8/s8        Max CH water Setpoint upper & lower bounds for adjustment(°C)
-    MSG_ID_TDHW_SET = 56,                                                 // f8.8         DHW Setpoint(°C) (Remote parameter 1)
-    MSG_ID_MAX_TSET = 57,                                                 // f8.8         Max CH water Setpoint(°C) (Remote parameters 2)
-    MSG_ID_STATUS_VENTILATION_HEAT_RECOVERY = 70,                         // flag8/flag8  Master and Slave Status flags ventilation / heat - recovery
-    MSG_ID_VSET = 71,                                                     // -/u8         Relative ventilation position (0-100%). 0% is the minimum set ventilation and 100% is the maximum set ventilation.
-    MSG_ID_ASF_FLAGS_OEM_FAULT_CODE_VENTILATION_HEAT_RECOVERY = 72,       // flag8/u8     Application-specific fault flags and OEM fault code ventilation / heat-recovery
-    MSG_ID_OEM_DDIAGNOSTIC_CODE_VENTILATION_HEAT_RECOVERY = 73,           // u16          An OEM-specific diagnostic/service code for ventilation / heat-recovery system
-    MSG_ID_S_CONFIG_S_MEMEBER_ID_CODE_VENTILATION_HEAT_RECOVERY = 74,     // flag8/u8     Slave Configuration Flags / Slave MemberID Code ventilation / heat-recovery
-    MSG_ID_OPENTHERM_VVERSION_VENTILATION_HEAT_RECOVERY = 75,             // f8.8         The implemented version of the OpenTherm Protocol Specification in the ventilation / heat-recovery system.
-    MSG_ID_VENTILATION_HEAT_RECOVERY_VERSION = 76,                        // u8/u8        Ventilation / heat-recovery product version number and type
-    MSG_ID_REL_VENT_LEVEL = 77,                                           // -/u8         Relative ventilation (0-100%)
-    MSG_ID_RH_EXHAUST = 78,                                               // -/u8         Relative humidity exhaust air (0-100%)
-    MSG_ID_CO2_EXHAUST = 79,                                              // u16          CO2 level exhaust air (0-2000 ppm)
-    MSG_ID_TSI = 80,                                                      // f8.8         Supply inlet temperature (°C)
-    MSG_ID_TSO = 81,                                                      // f8.8         Supply outlet temperature (°C)
-    MSG_ID_TEI = 82,                                                      // f8.8         Exhaust inlet temperature (°C)
-    MSG_ID_TEO = 83,                                                      // f8.8         Exhaust outlet temperature (°C)
-    MSG_ID_RPM_EXHAUST = 84,                                              // u16          Exhaust fan speed in rpm
-    MSG_ID_RPM_SUPPLY = 85,                                               // u16          Supply fan speed in rpm
-    MSG_ID_RBP_FLAGS_VENTILATION_HEAT_RECOVERY = 86,                      // flag8/flag8  Remote ventilation / heat-recovery parameter transfer-enable & read/write flags
-    MSG_ID_NOMINAL_VENTILATION_VALUE = 87,                                // u8/-         Nominal relative value for ventilation (0-100 %)
-    MSG_ID_TSP_VENTILATION_HEAT_RECOVERY = 88,                            // u8/u8        Number of Transparent-Slave-Parameters supported by TSP’s ventilation / heat-recovery
-    MSG_ID_TSPindexTSP_VALUE_VENTILATION_HEAT_RECOVERY = 89,              // u8/u8        Index number / Value of referred-to transparent TSP’s ventilation / heat-recovery parameter.
-    MSG_ID_FHB_SIZE_VENTILATION_HEAT_RECOVERY = 90,                       // u8/u8        Size of Fault-History-Buffer supported by ventilation / heat-recovery
-    MSG_ID_FHB_INDEX_FHB_VALUE_VENTILATION_HEAT_RECOVERY = 91,            // u8/u8        Index number / Value of referred-to fault-history buffer entry ventilation / heat-recovery
-    MSG_ID_BRAND = 93,                                                    // u8/u8        Index number of the character in the text string ASCII character referenced by the above index number
-    MSG_ID_BRAND_VERSION = 94,                                            // u8/u8        Index number of the character in the text string ASCII character referenced by the above index number
-    MSG_ID_BRAND_SERIAL_NUMBER = 95,                                      // u8/u8        Index number of the character in the text string ASCII character referenced by the above index number
-    MSG_ID_COOLING_OPERATION_HOURS = 96,                                  // u16          Number of hours that the slave is in Cooling Mode. Reset by zero is optional for slave
-    MSG_ID_POWER_CYCLES = 97,                                             // u16          Number of Power Cycles of a slave (wake-up after Reset), Reset by zero is optional for slave
-    MSG_ID_RF_SENSOR_STATUS_INFORMATION = 98,                             // special/special   For a specific RF sensor the RF strength and battery level is written
-    MSG_ID_REMOTE_OVERRIDE_OOPERATING_MODE_HEATING_DHW = 99,              // special/special   Operating Mode HC1, HC2/ Operating Mode DHW
-    MSG_ID_REMOTE_OVERRIDE_FUNCTION = 100,                                // flag8/-   Function of manual and program changes in master and remote room Setpoint
-    MSG_ID_STATUS_SOLAR_STORAGE = 101,                                    // flag8/flag8   Master and Slave Status flags Solar Storage
-    MSG_ID_ASF_FLAGS_OEMFAULT_CODE_SOLAR_STORAGE = 102,                   // flag8/u8  Application-specific fault flags and OEM fault code Solar Storage
-    MSG_ID_S_CONFIG_S_MEMBER_ID_CODE_SOLAR_STORAGE = 103,                 // flag8/u8  Slave Configuration Flags / Slave MemberID Code Solar Storage
-    MSG_ID_SOLAR_STORAGE_VERSION = 104,                                   // u8/u8     Solar Storage product version number and type
-    MSG_ID_TSP_SOLAR_SSTORAGE = 105,                                      // u8/u8     Number of Transparent - Slave - Parameters supported by TSP’s Solar Storage
-    MSG_ID_TSP_INDEX_TSP_VALUE_SOLAR_STORAGE = 106,                       // u8/u8     Index number / Value of referred - to transparent TSP’s Solar Storage parameter.
-    MSG_ID_FHB_SIZE_SOLAR_STORAGE = 107,                                  // u8/u8     Size of Fault - History - Buffer supported by Solar Storage
-    MSG_ID_FHB_INDEX_FHB_VALUE_SOLAR_STORAGE = 108,                       // u8/u8     Index number / Value of referred - to fault - history buffer entry Solar Storage
-    MSG_ID_ELECTRICITY_PRODUCER_STARTS = 109,                             // U16     Number of start of the electricity producer.
-    MSG_ID_ELECTRICITY_PRODUCER_HOURS = 110,                              // U16     Number of hours the electricity produces is in operation
-    MSG_ID_ELECTRICITY_PRODUCTION = 111,                                  // U16     Current electricity production in Watt.
-    MSG_ID_CUMULATIV_ELECTRICITY_PRODUCTION = 112,                        // U16     Cumulative electricity production in KWh.
-    MSG_ID_UNSUCCESSFULL_BURNER_STARTS = 113,                             // u16     Number of un - successful burner starts
-    MSG_ID_FLAME_SIGNAL_TOO_LOW_NUMBER = 114,                             // u16     Number of times flame signal was too low
-    MSG_ID_OEM_DDIAGNOSTIC_CODE = 115,                                    // u16     OEM - specific diagnostic / service code
-    MSG_ID_SUCESSFULL_BURNER_SSTARTS = 116,                               // u16     Number of succesful starts burner
-    MSG_ID_CH_PUMP_STARTS = 117,                                          // u16     Number of starts CH pump
-    MSG_ID_DHW_PUPM_VALVE_STARTS = 118,                                   // u16     Number of starts DHW pump / valve
-    MSG_ID_DHW_BURNER_STARTS = 119,                                       // u16     Number of starts burner during DHW mode
-    MSG_ID_BURNER_OPERATION_HOURS = 120,                                  // u16     Number of hours that burner is in operation(i.e.flame on)
-    MSG_ID_CH_PUMP_OPERATION_HOURS = 121,                                 // u16     Number of hours that CH pump has been running
-    MSG_ID_DHW_PUMP_VALVE_OPERATION_HOURS = 122,                          // u16     Number of hours that DHW pump has been running or DHW valve has been opened
-    MSG_ID_DHW_BURNER_OOPERATION_HOURS = 123,                             // u16     Number of hours that burner is in operation during DHW mode
-    MSG_ID_OPENTERM_VERSION_MASTER = 124,                                 // f8.8    The implemented version of the OpenTherm Protocol Specification in the master.
-    MSG_ID_OPENTERM_VERSION_SLAVE = 125,                                  // f8.8    The implemented version of the OpenTherm Protocol Specification in the slave.
-    MSG_ID_MASTER_VERSION = 126,                                          // u8/u8     Master product version number and type
-    MSG_ID_SLAVE_VERSION = 127,                                           // u8/u8     Slave product version number and type
+    MSG_ID_STATUS = 0,                                                // flag8/flag8    |R-|      Master and Slave Status flags.
+    MSG_ID_T_SET = 1,                                                 // f8.8           |-W|      Control Setpoint i.e.CH water temperature Setpoint(°C)
+    MSG_ID_M_CONFIG_M_MEMEBER_ID_CODE = 2,                            // flag8/u8       |-W|      Master Configuration Flags / Master MemberID Code
+    MSG_ID_S_CONFIG_S_MEMEBER_ID_CODE = 3,                            // flag8/u8       |R-|      Slave Configuration Flags / Slave MemberID Code
+    MSG_ID_REMOTE_REQUEST = 4,                                        // u8/u8          |-W|      Remote Request
+    MSG_ID_ASF_FLAGS = 5,                                             // flag8/u8       |R-|      Application - specific fault flags and OEM fault code
+                                                                      //                          bit: description [ clear/0, set/1]
+                                                                      //                          0: Service request [service not req’d, service required]
+                                                                      //                          1: Lockout-reset [ remote reset disabled, rr enabled]
+                                                                      //                          2: Low water press [no WP fault, water pressure fault]
+                                                                      //                          3: Gas/flame fault [ no G/F fault, gas/flame fault ]
+                                                                      //                          4: Air press fault [ no AP fault, air pressure fault ]
+                                                                      //                          5: Water over-temp[ no OvT fault, over-temperat. Fault]
+                                                                      //                          6: reserved
+                                                                      //                          7: reserved
+                                                                      //                          OEM diagnostic code
+                                                                      //
+    MSG_ID_RBP_FLAGS = 6,                                             // flag8/flag8    |R-|      Remote boiler parameter transfer - enable & read / write flags
+    MSG_ID_COOLING_CONTROL = 7,                                       // f8.8           |R-|      Cooling control signal(%)
+    MSG_ID_T_SET_CH2 = 8,                                             // f8.8           |-W|      Control Setpoint for 2e CH circuit(°C)
+    MSG_ID_TR_OVERRIDE = 9,                                           // f8.8           |R-|      Remote override room Setpoint
+    MSG_ID_TSP = 10,                                                  // u8/u8          |R-|      Number of Transparent - Slave - Parameters supported by slave
+    MSG_ID_TSP_INDEX_TSP_VALUE = 11,                                  // u8/u8          |RW|      Index number / Value of referred - to transparent slave parameter.
+    MSG_ID_FHB_SIZE = 12,                                             // u8/u8          |R-|      Size of Fault - History - Buffer supported by slave
+    MSG_ID_FHB_INDEX_FHB_VALUE = 13,                                  // u8/u8          |R-|      Index number / Value of referred - to fault - history buffer entry.
+    MSG_ID_MAX_REL_MOD_LEVEL_SETTING = 14,                            // f8.8           |W-|      Maximum relative modulation level setting(%)
+    MSG_ID_MAX_CAPACITY_MIN_MOD_LEVEL = 15,                           // u8/u8          |R-|      Maximum boiler capacity(kW) / Minimum boiler modulation level(%)
+    MSG_ID_TR_SET = 16,                                               // f8.8           |-W|      Room Setpoint(°C)
+    MSG_ID_REL_MOD_LEVEL = 17,                                        // f8.8           |R-|      Relative Modulation Level(%)
+    MSG_ID_CH_PRESSURE = 18,                                          // f8.8           |R-|      Water pressure in CH circuit(bar)
+    MSG_ID_DHW_FLOW_RATE = 19,                                        // f8.8           |R-|      Water flow rate in DHW circuit. (litres / minute)
+    MSG_ID_DAY_TIME = 20,                                             // special/u8     |RW|      Day of Week and Time of
+                                                                      //                          HB : bits 7,6,5 : day of week    bits 4,3,2,1,0 : hours LB : minutes
+    MSG_ID_DATE = 21,                                                 // u8/u8          |RW|      Calendar date
+    MSG_ID_YEAR = 22,                                                 // u16            |RW|      Calendar year
+    MSG_ID_TR_SET_CH2 = 23,                                           // f8.8           |-W|      Room Setpoint for 2nd CH circuit(°C)
+    MSG_ID_TR = 24,                                                   // f8.8           |-W|      Room temperature(°C)
+    MSG_ID_TBOILER = 25,                                              // f8.8           |R-|      Boiler flow water temperature(°C)
+    MSG_ID_TDHW = 26,                                                 // f8.8           |R-|      DHW temperature(°C)
+    MSG_ID_TOUTSIDE = 27,                                             // f8.8           |R-|      Outside temperature(°C)
+    MSG_ID_TRET = 28,                                                 // f8.8           |R-|      Return water temperature(°C)
+    MSG_ID_TSTORAGE = 29,                                             // f8.8           |R-|      Solar storage temperature(°C)
+    MSG_ID_TCOLLECTOR = 30,                                           // f8.8           |R-|      Solar collector temperature(°C)
+    MSG_ID_T_FLOW_CH2 = 31,                                           // f8.8           |R-|      Flow water temperature CH2 circuit(°C)
+    MSG_ID_TDHW2 = 32,                                                // f8.8           |R-|      Domestic hot water temperature 2 (°C)
+    MSG_ID_TEXHAUST = 33,                                             // s16            |R-|      Boiler exhaust temperature(°C)
+                                                                      //
+    MSG_ID_TBOILER_HEAT_EEXCHANGER = 34,                              // f8.8           |??|      Boiler heat exchanger temperature(°C)
+    MSG_ID_BOILER_FAN_SSPEED_SETPOINT_AND_ACTIAL = 35,                // u8/u8          |??|      Boiler fan speed Setpoint and actual value
+    MSG_ID_FLAME_CURRENT = 36,                                        // f8.8           |??|      Electrical current through burner flame[μA]
+    MSG_ID_TR_CH2 = 37,                                               // f8.8           |??|      Room temperature for 2nd CH circuit(°C)
+    MSG_ID_RELATIVE_HUMIDITY = 38,                                    // f8.8           |??|      Actual relative humidity as a percentage
+    MSG_ID_TR_OOVERRIDE2 = 39,                                        // f8.8           |??|      Remote Override Room Setpoint 2
+                                                                      //
+    MSG_ID_TDHW_SET_UBT_DHW_SET_LB = 48,                              // s8/s8          |R-|      DHW Setpoint upper & lower bounds for adjustment(°C)
+    MSG_ID_MAX_TSET_UB_MAX_TSET_LB = 49,                              // s8/s8          |R-|      Max CH water Setpoint upper & lower bounds for adjustment(°C)
+    MSG_ID_OTC_HEAT_CURVE_UL_BOUNDS = 50,                             // s8/s8          |R-|      OTC heat curve ratio upper & lower bounds for adjustment
+    MSG_ID_TDHW_SET = 56,                                             // f8.8           |RW|      DHW Setpoint(°C) (Remote parameter 1)
+    MSG_ID_MAX_TSET = 57,                                             // f8.8           |RW|      Max CH water Setpoint(°C) (Remote parameters 2)
+    MSG_ID_OTC_CURVE_RATIO = 58,                                      // f8.8           |RW|      OTC heat curve ratio (°C) (Remote parameter 3)
+                                                                      //
+    MSG_ID_STATUS_VENTILATION_HEAT_RECOVERY = 70,                     // flag8/flag8    |??|      Master and Slave Status flags ventilation / heat - recovery
+    MSG_ID_VSET = 71,                                                 // -/u8           |??|      Relative ventilation position (0-100%). 0% is the minimum set ventilation and 100% is the maximum set ventilation.
+    MSG_ID_ASF_FLAGS_OEM_FAULT_CODE_VENTILATION_HEAT_RECOVERY = 72,   // flag8/u8       |??|      Application-specific fault flags and OEM fault code ventilation / heat-recovery
+    MSG_ID_OEM_DDIAGNOSTIC_CODE_VENTILATION_HEAT_RECOVERY = 73,       // u16            |??|      An OEM-specific diagnostic/service code for ventilation / heat-recovery system
+    MSG_ID_S_CONFIG_S_MEMEBER_ID_CODE_VENTILATION_HEAT_RECOVERY = 74, // flag8/u8       |??|      Slave Configuration Flags / Slave MemberID Code ventilation / heat-recovery
+    MSG_ID_OPENTHERM_VVERSION_VENTILATION_HEAT_RECOVERY = 75,         // f8.8           |??|      The implemented version of the OpenTherm Protocol Specification in the ventilation / heat-recovery system.
+    MSG_ID_VENTILATION_HEAT_RECOVERY_VERSION = 76,                    // u8/u8          |??|      Ventilation / heat-recovery product version number and type
+    MSG_ID_REL_VENT_LEVEL = 77,                                       // -/u8           |??|      Relative ventilation (0-100%)
+    MSG_ID_RH_EXHAUST = 78,                                           // -/u8           |??|      Relative humidity exhaust air (0-100%)
+    MSG_ID_CO2_EXHAUST = 79,                                          // u16            |??|      CO2 level exhaust air (0-2000 ppm)
+    MSG_ID_TSI = 80,                                                  // f8.8           |??|      Supply inlet temperature (°C)
+    MSG_ID_TSO = 81,                                                  // f8.8           |??|      Supply outlet temperature (°C)
+    MSG_ID_TEI = 82,                                                  // f8.8           |??|      Exhaust inlet temperature (°C)
+    MSG_ID_TEO = 83,                                                  // f8.8           |??|      Exhaust outlet temperature (°C)
+    MSG_ID_RPM_EXHAUST = 84,                                          // u16            |??|      Exhaust fan speed in rpm
+    MSG_ID_RPM_SUPPLY = 85,                                           // u16            |??|      Supply fan speed in rpm
+    MSG_ID_RBP_FLAGS_VENTILATION_HEAT_RECOVERY = 86,                  // flag8/flag8    |??|      Remote ventilation / heat-recovery parameter transfer-enable & read/write flags
+    MSG_ID_NOMINAL_VENTILATION_VALUE = 87,                            // u8/-           |??|      Nominal relative value for ventilation (0-100 %)
+    MSG_ID_TSP_VENTILATION_HEAT_RECOVERY = 88,                        // u8/u8          |??|      Number of Transparent-Slave-Parameters supported by TSP’s ventilation / heat-recovery
+    MSG_ID_TSPindexTSP_VALUE_VENTILATION_HEAT_RECOVERY = 89,          // u8/u8          |??|      Index number / Value of referred-to transparent TSP’s ventilation / heat-recovery parameter.
+    MSG_ID_FHB_SIZE_VENTILATION_HEAT_RECOVERY = 90,                   // u8/u8          |??|      Size of Fault-History-Buffer supported by ventilation / heat-recovery
+    MSG_ID_FHB_INDEX_FHB_VALUE_VENTILATION_HEAT_RECOVERY = 91,        // u8/u8          |??|      Index number / Value of referred-to fault-history buffer entry ventilation / heat-recovery
+    MSG_ID_BRAND = 93,                                                // u8/u8          |??|      Index number of the character in the text string ASCII character referenced by the above index number
+    MSG_ID_BRAND_VERSION = 94,                                        // u8/u8          |??|      Index number of the character in the text string ASCII character referenced by the above index number
+    MSG_ID_BRAND_SERIAL_NUMBER = 95,                                  // u8/u8          |??|      Index number of the character in the text string ASCII character referenced by the above index number
+    MSG_ID_COOLING_OPERATION_HOURS = 96,                              // u16            |??|      Number of hours that the slave is in Cooling Mode. Reset by zero is optional for slave
+    MSG_ID_POWER_CYCLES = 97,                                         // u16            |??|      Number of Power Cycles of a slave (wake-up after Reset), Reset by zero is optional for slave
+    MSG_ID_RF_SENSOR_STATUS_INFORMATION = 98,                         // special/special|??|      For a specific RF sensor the RF strength and battery level is written
+    MSG_ID_REMOTE_OVERRIDE_OOPERATING_MODE_HEATING_DHW = 99,          // special/special|??|      Operating Mode HC1, HC2/ Operating Mode DHW
+                                                                      //
+    MSG_ID_REMOTE_OVERRIDE_FUNCTION = 100,                            // flag8/-        |R-|      Function of manual and program changes in master and remote room Setpoint
+                                                                      //
+    MSG_ID_STATUS_SOLAR_STORAGE = 101,                                // flag8/flag8    |??|      Master and Slave Status flags Solar Storage
+    MSG_ID_ASF_FLAGS_OEMFAULT_CODE_SOLAR_STORAGE = 102,               // flag8/u8       |??|      Application-specific fault flags and OEM fault code Solar Storage
+    MSG_ID_S_CONFIG_S_MEMBER_ID_CODE_SOLAR_STORAGE = 103,             // flag8/u8       |??|      Slave Configuration Flags / Slave MemberID Code Solar Storage
+    MSG_ID_SOLAR_STORAGE_VERSION = 104,                               // u8/u8          |??|      Solar Storage product version number and type
+    MSG_ID_TSP_SOLAR_SSTORAGE = 105,                                  // u8/u8          |??|      Number of Transparent - Slave - Parameters supported by TSP’s Solar Storage
+    MSG_ID_TSP_INDEX_TSP_VALUE_SOLAR_STORAGE = 106,                   // u8/u8          |??|      Index number / Value of referred - to transparent TSP’s Solar Storage parameter.
+    MSG_ID_FHB_SIZE_SOLAR_STORAGE = 107,                              // u8/u8          |??|      Size of Fault - History - Buffer supported by Solar Storage
+    MSG_ID_FHB_INDEX_FHB_VALUE_SOLAR_STORAGE = 108,                   // u8/u8          |??|      Index number / Value of referred - to fault - history buffer entry Solar Storage
+    MSG_ID_ELECTRICITY_PRODUCER_STARTS = 109,                         // U16            |??|      Number of start of the electricity producer.
+    MSG_ID_ELECTRICITY_PRODUCER_HOURS = 110,                          // U16            |??|      Number of hours the electricity produces is in operation
+    MSG_ID_ELECTRICITY_PRODUCTION = 111,                              // U16            |??|      Current electricity production in Watt.
+    MSG_ID_CUMULATIV_ELECTRICITY_PRODUCTION = 112,                    // U16            |??|      Cumulative electricity production in KWh.
+    MSG_ID_UNSUCCESSFULL_BURNER_STARTS = 113,                         // u16            |??|      Number of un - successful burner starts
+    MSG_ID_FLAME_SIGNAL_TOO_LOW_NUMBER = 114,                         // u16            |??|      Number of times flame signal was too low
+                                                                      //
+    MSG_ID_OEM_DDIAGNOSTIC_CODE = 115,                                // u16            |R-|      OEM - specific diagnostic / service code
+    MSG_ID_SUCESSFULL_BURNER_SSTARTS = 116,                           // u16            |RW|      Number of succesful starts burner
+    MSG_ID_CH_PUMP_STARTS = 117,                                      // u16            |RW|      Number of starts CH pump
+    MSG_ID_DHW_PUPM_VALVE_STARTS = 118,                               // u16            |RW|      Number of starts DHW pump / valve
+    MSG_ID_DHW_BURNER_STARTS = 119,                                   // u16            |RW|      Number of starts burner during DHW mode
+    MSG_ID_BURNER_OPERATION_HOURS = 120,                              // u16            |RW|      Number of hours that burner is in operation(i.e.flame on)
+    MSG_ID_CH_PUMP_OPERATION_HOURS = 121,                             // u16            |RW|      Number of hours that CH pump has been running
+    MSG_ID_DHW_PUMP_VALVE_OPERATION_HOURS = 122,                      // u16            |RW|      Number of hours that DHW pump has been running or DHW valve has been opened
+    MSG_ID_DHW_BURNER_OOPERATION_HOURS = 123,                         // u16            |-W|      Number of hours that burner is in operation during DHW mode
+    MSG_ID_OPENTERM_VERSION_MASTER = 124,                             // f8.8           |R-|      The implemented version of the OpenTherm Protocol Specification in the master.
+    MSG_ID_OPENTERM_VERSION_SLAVE = 125,                              // f8.8           |-W|      The implemented version of the OpenTherm Protocol Specification in the slave.
+    MSG_ID_MASTER_VERSION = 126,                                      // u8/u8          |-W|      Master product version number and type
+    MSG_ID_SLAVE_VERSION = 127,                                       // u8/u8          |R-|      Slave product version number and type
 } open_therm_message_id_t;
 
 typedef enum OpenThermStatus
@@ -238,6 +260,8 @@ unsigned long esp_ot_set_boiler_status(bool enableCentralHeating, bool enableHot
 
 bool esp_ot_set_boiler_temperature(float temperature);
 
+bool esp_ot_set_modulation_level(int percent);
+
 float esp_ot_get_boiler_temperature();
 
 float esp_ot_get_return_temperature();
@@ -246,14 +270,44 @@ bool esp_ot_set_dhw_setpoint(float temperature);
 
 float esp_ot_get_dhw_temperature();
 
+float esp_ot_get_exhaust_temperature();
+
+float esp_ot_get_dhw2_temperature();
+
 float esp_ot_get_modulation();
+
+float esp_ot_get_ch2_flow();
 
 float esp_ot_get_pressure();
 
 unsigned char esp_ot_get_fault();
+
+uint16_t esp_ot_get_fault_code();
 
 unsigned long ot_reset();
 
 unsigned long esp_ot_get_slave_product_version();
 
 float esp_ot_get_slave_ot_version();
+
+float esp_ot_get_ch_max_setpoint();
+
+float esp_ot_get_dhw_setpoint();
+
+float esp_ot_get_outside_temperature();
+
+float esp_ot_get_flow_rate();
+
+esp_ot_min_max_t esp_ot_get_dhw_upper_lower_bounds();
+
+esp_ot_min_max_t esp_ot_get_ch_upper_lower_bounds();
+
+esp_ot_cap_mod_t esp_ot_get_max_capacity_min_modulation();
+
+esp_ot_min_max_t esp_ot_get_heat_curve_ul_bounds();
+
+esp_ot_asf_flags_t esp_ot_get_asf_flags();
+
+uint16_t esp_ot_get_oem_diagnostic_code();
+
+esp_ot_slave_config_t esp_ot_get_slave_configuration();
