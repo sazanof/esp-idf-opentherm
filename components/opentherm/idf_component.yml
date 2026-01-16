@@ -1,0 +1,8 @@
+version: "1.0.1"
+description: "Opentherm library for ESP-IDF framework"
+url: "https://github.com/sazanof/esp-idf-opentherm"
+maintainer: "Mikhail Sazanov <m@sazanof.ru>"
+license: "MIT"
+dependencies:
+  idf:
+    version: ">=5.2"

@@ -9,11 +9,11 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "opentherm.h"
-#include <esp_log.h>
-#include <esp_err.h>
+#include "esp_log.h"
+#include "esp_err.h"
 
-#define GPIO_OT_IN CONFIG_OT_IN_PIN
-#define GPIO_OT_OUT CONFIG_OT_OUT_PIN
+#define GPIO_OT_IN 22
+#define GPIO_OT_OUT 23
 #define ESP_INTR_FLAG_DEFAULT 0
 
 volatile float dhwTemp = 0;
