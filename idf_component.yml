@@ -6,6 +6,3 @@ license: "MIT"
 dependencies:
   idf:
     version: ">=5.2"
-  sazanof/opentherm:
-    version: "*"
-    registry_url: https://components-staging.espressif.com
