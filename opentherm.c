@@ -568,7 +568,7 @@ unsigned long esp_ot_send_request(unsigned long request)
     while (!esp_ot_is_ready())
     {
         process();
-        vPortYield();
+        vTaskDelay(pdMS_TO_TICKS(1));
 
         // Проверка таймаута
         if ((xTaskGetTickCount() - start) > timeout)
