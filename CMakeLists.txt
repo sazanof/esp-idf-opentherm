@@ -1,4 +1,11 @@
-cmake_minimum_required(VERSION 3.16)
-include($ENV{IDF_PATH}/tools/cmake/project.cmake)
+idf_component_register(
+    SRCS 
+        "opentherm.c"
+    
+    INCLUDE_DIRS 
+        "include"
 
-project(esp-idf-opentherm)
+    REQUIRES 
+        driver
+        esp_timer
+)

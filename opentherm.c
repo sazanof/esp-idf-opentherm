@@ -540,17 +540,44 @@ bool esp_ot_send_request_async(unsigned long request)
  *
  * @return  long
  */
+// unsigned long esp_ot_send_request(unsigned long request)
+// {
+//     if (!esp_ot_send_request_async(request))
+//     {
+//         return 0;
+//     }
+//     // ESP_LOGI("STATUS", "esp_ot_send_request with status %d", status); // here WAITING
+//     while (!esp_ot_is_ready())
+//     {
+//         process();
+//         vPortYield();
+//     }
+//     return response;
+// }
 unsigned long esp_ot_send_request(unsigned long request)
 {
     if (!esp_ot_send_request_async(request))
     {
         return 0;
     }
-    // ESP_LOGI("STATUS", "esp_ot_send_request with status %d", status); // here WAITING
+
+    // Добавляем таймаут 500 мс
+    TickType_t start = xTaskGetTickCount();
+    TickType_t timeout = pdMS_TO_TICKS(500);
+
     while (!esp_ot_is_ready())
     {
         process();
         vPortYield();
+
+        // Проверка таймаута
+        if ((xTaskGetTickCount() - start) > timeout)
+        {
+            ESP_LOGW(TAG, "Request timeout (no boiler response)");
+            esp_ot_status = OT_READY;
+            esp_ot_response_status = OT_STATUS_TIMEOUT;
+            return 0;
+        }
     }
     return response;
 }
